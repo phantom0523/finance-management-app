@@ -1,0 +1,58 @@
+/* E-Wallet monochrome system */
+.modal-backdrop[hidden]{display:none!important;pointer-events:none}
+.modal.wide-modal{width:min(780px,100%)}.modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.modal-head h2{margin-bottom:6px}.activity-scroll{max-height:65vh;overflow-y:auto;padding-right:8px}.activity-scroll .activity-item{padding:15px 0}.activity-scroll::-webkit-scrollbar{width:7px}.activity-scroll::-webkit-scrollbar-thumb{background:#b5b5b5;border-radius:8px}
+.activity-item{grid-template-columns:34px 1fr auto auto}.activity-actions{display:flex;gap:7px}.activity-actions button{border:0;background:#eee;color:#222;padding:5px 7px;border-radius:5px;font:600 9px Manrope;cursor:pointer}.activity-actions button:last-child{background:#e0e0e0}.dark .activity-actions button{background:#333;color:#eee}.dark .activity-actions button:last-child{background:#454545}
+:root{--bg:#f2f2f2;--panel:#fff;--ink:#111;--muted:#747474;--line:#dfdfdf;--lime:#171717;--lime-dark:#000;--orange:#a4a4a4;--blue:#686868;--purple:#8d8d8d;--shadow:0 12px 34px rgba(0,0,0,.055)}
+body{background:var(--bg);color:var(--ink)}.sidebar{background:#111;color:#f4f4f4}.brand-mark{background:#fff;color:#111}.nav-link{color:#b7b7b7}.nav-link.active,.nav-link:hover{background:#2c2c2c}.primary{background:#111;color:#fff}.primary:hover{background:#3b3b3b}.accent,.text-button{color:#111}.trend{background:#ededed;color:#333}
+
+/* FIX: Restored colored P/L text for Light Mode */
+.positive{color:#6bb31a!important}
+.negative{color:#d0694e!important}
+
+.budget-meter i,.bar,.allocation-meter i{background:#1d1d1d!important}.bar.secondary{background:#c9c9c9!important}.activity-icon{background:#ececec;color:#222}.status-dot{background:#111;box-shadow:0 0 0 4px #e6e6e6}.worth-hero{background:#141414}.worth-hero:after{background:#fff}.worth-hero span{color:#e5e5e5!important}.cash,.stock,.owed{background:#eee;color:#202020}.insight-rule{background:#111}.expense-actions select,.table-filter{border:1px solid var(--line);background:#fff;color:#111}.holding-head button:hover{color:#111}.ticker-suggestions button:hover{background:#f1f1f1}.ticker-suggestions b{color:#111}.modal-backdrop{background:rgba(0,0,0,.52)}
+.table-filter{padding:8px 10px;border-radius:7px;font:600 11px Manrope}.table-head button{border:0;background:transparent;text-align:left;padding:0;color:#8b8b8b;font:9px 'DM Mono';letter-spacing:.4px;cursor:pointer}.table-head button:hover{color:#111}
+
+/* Dark Mode Overrides */
+body.dark{--bg:#0d0d0d;--panel:#171717;--ink:#f5f5f5;--muted:#a6a6a6;--line:#303030;--lime:#f5f5f5;--lime-dark:#fff;--shadow:0 12px 35px rgba(0,0,0,.28)}
+body.dark .sidebar{background:#000}
+body.dark .brand-mark{background:#f6f6f6;color:#111}
+body.dark .primary{background:#f4f4f4;color:#111}
+body.dark .primary:hover{background:#d0d0d0}
+body.dark .trend,body.dark .segmented{background:#2a2a2a}
+body.dark .activity-icon,body.dark .cash,body.dark .stock,body.dark .owed{background:#292929;color:#f5f5f5}
+body.dark .category-tag,body.dark .fine-print code{background:#2a2a2a;color:#e8e8e8}
+body.dark .expense-actions select,body.dark .table-filter,body.dark .field input,body.dark .field select{background:#1b1b1b;color:#f5f5f5;border-color:#3b3b3b}
+body.dark .ticker-suggestions,body.dark .ticker-suggestions button{background:#202020;color:#f5f5f5;border-color:#393939}
+body.dark .ticker-suggestions button:hover{background:#2d2d2d}
+body.dark .ticker-suggestions b{color:#fff}
+body.dark .modal{background:#171717}
+body.dark .sub-label{color: #a6a6a6; opacity: 1;}
+
+/* Responsive Label Colors for Dark Mode */
+body.dark .positive { color: #a4d955 !important; }
+body.dark .negative { color: #ff8f73 !important; }
+body.dark .bg-positive, body.dark .type-badge.buy { background-color: #1e2b10; color: #a4d955; }
+body.dark .bg-negative { background-color: #3b1c18; color: #ff8f73; }
+body.dark .type-badge.dividend { background-color: #152238; color: #7997e8; }
+body.dark .growth-text.positive { color: #c7ef59; }
+body.dark .growth-text.negative { color: #ff8f73; }
+
+/* FIX: Dark Mode Visibility for Bars and Text Buttons */
+body.dark .budget-meter i, 
+body.dark .bar, 
+body.dark .allocation-meter i { 
+    background: #f5f5f5 !important; 
+}
+
+body.dark .budget-meter, 
+body.dark .allocation-meter { 
+    background: #333 !important; 
+}
+
+body.dark .bar.secondary { 
+    background: #444 !important; 
+}
+
+body.dark .text-button { 
+    color: #f5f5f5 !important; 
+}

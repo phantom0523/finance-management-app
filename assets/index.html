@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E-Wallet — Personal Finance</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="theme.css" />
+    <link rel="stylesheet" href="monochrome.css" />
+  </head>
+  <body>
+    <div id="login-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+      <div style="background:var(--surface);padding:40px;border-radius:12px;border:1px solid var(--line);text-align:center;width:320px;">
+        <h2 style="margin-top:0;">E-Wallet Login</h2>
+        <input type="email" id="login-email" placeholder="Email" style="width:100%;margin-bottom:12px;padding:10px;box-sizing:border-box;">
+        <input type="password" id="login-password" placeholder="Password" style="width:100%;margin-bottom:20px;padding:10px;box-sizing:border-box;">
+        <button id="login-btn" class="primary" style="width:100%;padding:10px;">Login</button>
+        <p id="login-error" style="color:var(--negative);margin-top:12px;font-size:14px;display:none;"></p>
+      </div>
+    </div>
+    <aside class="sidebar">
+      <a class="brand" href="#dashboard"><span>Finance Management</span></a>
+      <nav>
+        <a class="nav-link active" href="#dashboard" data-page="dashboard"><span>◫</span> Dashboard</a>
+        <a class="nav-link" href="#expenses" data-page="expenses"><span>◒</span> Expenses</a>
+        <a class="nav-link" href="#portfolio" data-page="portfolio"><span>◈</span> Investments</a>
+        <a class="nav-link" href="#net-worth" data-page="net-worth"><span>◎</span> Savings</a>
+      </nav>
+      <div class="sidebar-bottom" id="profile-btn" style="cursor: pointer; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
+        <div class="avatar" id="avatar-icon">D</div>
+        <div><b id="profile-name-display">My personal space</b><small id="profile-email-display">MYR · USD</small></div>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar"><button class="menu-button" aria-label="Open navigation">☰</button><div class="date-label" id="today"></div><button class="icon-button" id="theme-toggle" aria-label="Toggle theme">◐</button></header>
+
+      <section class="page active" id="dashboard">
+        <div class="intro"><div><p class="eyebrow">OVERVIEW</p><h1>Good morning, <span id="greet-name">Declan</span><span class="accent">.</span></h1><p class="subhead">Your money is working quietly in the background.</p></div></div>
+        <div class="stat-grid">
+          <article class="stat-card wide"><p>Net worth</p><h2 id="total-worth">RM 0</h2><div class="sparkline" id="sparkline"></div><small>Across cash, budget and investments</small></article>
+          <article class="stat-card"><p>This month spent</p><h2 id="month-spent">RM 0</h2><small id="spent-note">No expenses yet</small></article>
+          <article class="stat-card"><p>Investment value <span class="trend" id="investment-roi" style="display:none;"></span></p><h2 id="investment-value">RM 0</h2><small class="positive" id="investment-change">Add your first holding</small></article>
+        </div>
+        
+        <div class="split-grid">
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <article class="panel chart-panel" style="height:auto; padding-bottom:16px;">
+              <div class="panel-head"><div><p class="eyebrow">SPENDING</p><h3>Monthly expense</h3></div></div>
+              <div class="bar-chart" id="bar-chart" style="height:130px; margin-top:10px;"></div>
+              <div class="chart-axis"><span>Week 1</span><span>Week 2</span><span>Week 3</span><span>Week 4</span></div>
+            </article>
+            
+            <article class="panel" style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+              <div class="panel-head">
+                <div><p class="eyebrow">ALLOWANCE</p><h3>Remaining this month</h3></div>
+              </div>
+              <h2 id="dash-allowance-left" style="font-size:28px; letter-spacing:-1px; margin: 12px 0 8px;">RM 0</h2>
+              <div class="budget-meter" style="height:8px; margin:8px 0; background:var(--line);">
+                <i id="dash-allowance-bar" style="width:0%; background:var(--lime);"></i>
+              </div>
+              <div style="display:flex; justify-content:space-between; color:var(--muted); font-size:11px; font-weight:700;">
+                <span id="dash-allowance-spent">Spent: RM 0</span>
+                <span id="dash-allowance-daily">Safe to spend: RM 0 / day</span>
+              </div>
+            </article>
+          </div>
+          
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">BUDGET</p><h3>In control</h3></div><button class="text-button" id="edit-budget">Edit</button></div>
+            <div id="budget-list" class="budget-list"></div>
+          </article>
+        </div>
+        
+        <article class="panel activity" style="margin-top:16px;">
+          <div class="panel-head"><div><p class="eyebrow">RECENT</p><h3>Latest activity</h3></div><button class="text-button" id="view-all-activity">See all</button></div>
+          <div id="recent-activity"></div>
+        </article>
+      </section>
+
+      <section class="page" id="expenses">
+        <div class="intro"><div><p class="eyebrow">MONEY OUT</p><h1>Monthly expenses<span class="accent">.</span></h1><p class="subhead">See exactly where this month went.</p></div><button class="primary" data-open-expense>＋ Add expense</button></div>
+        <div class="expense-layout"><article class="panel donut-card"><div class="panel-head"><h3>Category split</h3><span id="expense-total-label">RM 0 total</span></div><div class="donut-wrap"><div class="donut" id="donut"><div><b id="donut-total">RM 0</b><small>spent</small></div></div><div class="legend" id="category-legend"></div></div></article>
+        <article class="panel analysis-card"><p class="eyebrow">A QUICK READ</p><h3 id="analysis-title">Start tracking to find your pattern.</h3><p id="analysis-copy">Add expenses and E-Wallet will surface meaningful changes in your monthly spending.</p><div class="insight-rule"></div><p class="eyebrow">TOP CATEGORIES</p><div class="big-category" id="top-category">—</div></article></div>
+        <article class="panel expense-table-panel">
+          <div class="panel-head">
+            <h3>Recent records</h3>
+            <button class="text-button" id="view-all-expenses" style="margin-left:auto;">See all</button>
+          </div>
+          <div class="expense-table">
+            <div class="table-head">
+              <span>Description</span>
+              <span>Category 1</span>
+              <span>Category 2</span>
+              <span>Date</span>
+              <span>Amount</span>
+              <span></span>
+            </div>
+            <div id="recent-expense-rows"></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="page" id="portfolio">
+        <div class="intro">
+          <div><p class="eyebrow">MARKETS</p><h1>Investments<span class="accent">.</span></h1><p class="subhead">Your US and Bursa Malaysia holdings, in one place.</p></div>
+          <div style="display:flex; gap:10px;">
+            <button class="primary" id="add-dividend" style="background:var(--muted)">＋ Add Dividend</button>
+            <button class="primary" id="add-holding">＋ Add holding</button>
+          </div>
+        </div>
+        
+        <div class="portfolio-summary" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 12px; margin-bottom: 16px;">
+          <article class="stat-card">
+            <p>Portfolio value</p>
+            <h2 id="portfolio-total" style="margin-bottom: 4px;">RM 0</h2>
+            <small id="portfolio-positions">0 positions</small>
+            <small class="sub-label">(Total AMT + Dividends)</small>
+          </article>
+          
+          <article class="stat-card" style="position:relative;">
+            <p>Total P/L</p>
+            <span id="portfolio-pl-percent" class="pl-badge" style="position:absolute; top:20px; right:20px; display:none;"></span>
+            <h2 id="portfolio-pl">—</h2>
+            <small>Capital Gain Only</small>
+          </article>
+          
+          <article class="stat-card"><p>Total Dividend</p><h2 id="portfolio-div">RM 0</h2><small>All-time realized</small></article>
+          
+          <article class="live-status" style="padding: 16px 14px;">
+            <span class="status-dot"></span><div><b style="font-size: 11px;">Live price lookup</b><small>Yahoo Finance</small></div><button class="text-button" id="refresh-prices">Refresh</button>
+          </article>
+        </div>
+        
+        <article class="panel holdings-panel" style="margin-bottom:16px;"><div class="panel-head"><h3>Your holdings</h3><span class="quote-status" id="quote-status"></span></div><div class="holdings-table">
+          <div class="holding-head">
+            <button data-sort="name">Symbol ↕</button>
+            <button data-sort="shares">Units ↕</button>
+            <button data-sort="value">Total AMT ↕</button>
+            <button data-sort="ppu">Avg PPU ↕</button>
+            <button data-sort="price">Current PPU (Live) ↕</button>
+            <button data-sort="unrealised">Total P/L ↕</button>
+            <div style="line-height:1.2; padding-top:2px;"><span>Realize P/L</span><br><small style="font-size:8px; opacity:0.8;">Dividend</small></div>
+            <button data-sort="fees">Fees ↕</button>
+            <button class="column-empty"></button>
+          </div>
+          <div id="holding-rows"></div>
+        </div><div class="empty-state" id="holdings-empty">No holdings yet. Add a US ticker (e.g. AAPL) or Bursa ticker (e.g. MAYBANK).</div></article>
+
+        <article class="panel holdings-panel">
+          <div class="panel-head">
+            <h3>Fund Details</h3>
+            <button class="text-button" id="view-all-history" style="margin-left:auto;">See all</button>
+          </div>
+          <div class="holdings-table">
+            <div class="table-head" style="display:grid; grid-template-columns: 1fr 0.8fr 1fr 1.5fr 0.8fr 1fr 90px; font-family:'DM Mono'; font-size:9px; color:#a2aaa4; letter-spacing:.4px; padding:12px 0 10px; border-bottom:1px solid var(--line);">
+              <button data-history-sort="date" style="border:0;background:transparent;text-align:left;padding:0;color:#8b8b8b;font:inherit;cursor:pointer;">DATE ↕</button>
+              <button data-history-sort="type" style="border:0;background:transparent;text-align:left;padding:0;color:#8b8b8b;font:inherit;cursor:pointer;">TYPE ↕</button>
+              <button data-history-sort="ticker" style="border:0;background:transparent;text-align:left;padding:0;color:#8b8b8b;font:inherit;cursor:pointer;">TICKER ↕</button>
+              <button data-history-sort="details" style="border:0;background:transparent;text-align:left;padding:0;color:#8b8b8b;font:inherit;cursor:pointer;">DETAILS ↕</button>
+              <button data-history-sort="fees" style="border:0;background:transparent;text-align:left;padding:0;color:#8b8b8b;font:inherit;cursor:pointer;">FEES ↕</button>
+              <button data-history-sort="amount" style="border:0;background:transparent;text-align:left;padding:0;color:#8b8b8b;font:inherit;cursor:pointer;">AMOUNT ↕</button>
+              <span></span>
+            </div>
+            <div id="recent-investment-history-rows"></div>
+          </div>
+          <div class="empty-state" id="recent-investment-history-empty" style="display:none;">No fund details yet.</div>
+        </article>
+
+        <p class="fine-print" style="margin-top:15px;">Quotes are retrieved from Yahoo Finance when available. Bursa tickers automatically use the <code>.KL</code> suffix; market data can be delayed.</p>
+      </section>
+
+      <section class="page" id="net-worth">
+        <div class="intro">
+          <div><p class="eyebrow">THE BIG PICTURE</p><h1>Savings<span class="accent">.</span></h1><p class="subhead">Manage your deposited funds and view your overall allocation.</p></div>
+        </div>
+        
+        <div class="worth-hero">
+          <p>NET WORTH</p>
+          <div style="display:flex; align-items:center; gap:16px; margin: 8px 0;">
+            <h2 id="net-worth-main" style="margin: 0; font-size: 43px; letter-spacing: -2px;">RM 0</h2>
+            <div style="display:flex; flex-direction:column; line-height:1.3;">
+              <b id="net-worth-change-amt" class="growth-text" style="font-size:16px;"></b>
+              <small id="net-worth-change-pct" class="growth-text" style="font-size:12px;"></small>
+            </div>
+            <button type="button" class="text-button" id="edit-net-worth-change" style="margin-left:auto; color:#c7ef59;">Edit</button>
+          </div>
+          <span style="color:#b5cabd; font-size:11px;">Available Cash + Investments</span>
+        </div>
+
+        <div class="asset-grid">
+          <article class="panel asset-card">
+            <div class="asset-icon cash">↓</div><p>Available Cash</p><h3 id="global-cash-value">RM 0</h3>
+            <button class="text-button" id="edit-savings">Update / Add Funds</button>
+          </article>
+          <article class="panel asset-card">
+            <div class="asset-icon stock">↗</div><p>Investments</p>
+            <h3 id="asset-investment" style="margin-bottom: 4px !important;">RM 0</h3>
+            <small class="sub-label" style="margin-bottom:12px;">(Actual Cost, Without P/L)</small>
+            <a class="text-button" href="#portfolio">View holdings</a>
+          </article>
+          <article class="panel asset-card">
+            <div class="asset-icon cash">$</div><p>Monthly Allowance</p><h3 id="monthly-cash-value">RM 0</h3>
+            <button class="text-button" id="edit-monthly-cash">Update amount</button>
+          </article>
+        </div>
+        
+        <article class="panel breakdown" style="margin-top:16px;">
+          <div class="panel-head"><h3>Asset allocation</h3><span id="allocation-note">Add values to see your mix</span></div>
+          <div id="allocation-bars"></div>
+        </article>
+
+        <article class="panel activity" style="margin-top:16px;">
+          <div class="panel-head">
+            <div><p class="eyebrow">RECENT</p><h3>Fund activity</h3></div>
+          </div>
+          <div id="savings-activity"></div>
+        </article>
+      </section>
+    </main>
+
+    <div class="modal-backdrop" id="modal-backdrop" hidden><div class="modal" id="modal"></div></div>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
