@@ -51,7 +51,13 @@
         <div class="split-grid">
           <div style="display:flex; flex-direction:column; gap:16px;">
             <article class="panel chart-panel" style="height:auto; padding-bottom:16px;">
-              <div class="panel-head"><div><p class="eyebrow">SPENDING</p><h3>Monthly expense</h3></div></div>
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">SPENDING</p>
+                  <h3>Monthly expense</h3>
+                </div>
+                <span id="chart-hover-display" style="font-size: 12px; font-weight: 700; color: var(--muted); font-family: 'DM Mono';"></span>
+              </div>
               <div class="bar-chart" id="bar-chart" style="height:130px; margin-top:10px;"></div>
               <div class="chart-axis"><span>Week 1</span><span>Week 2</span><span>Week 3</span><span>Week 4</span></div>
             </article>

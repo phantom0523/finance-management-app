@@ -323,12 +323,26 @@ function renderDashboard() {
   
   const max = Math.max(...weeks, 100); 
   if (el('bar-chart')) {
-      el('bar-chart').innerHTML = weeks.map((value) => `
-          <div class="bar-group">
-              <i class="bar" title="${money(value)}" style="height:${Math.max(4, value / max * 100)}%"></i>
+      el('bar-chart').innerHTML = weeks.map((value, index) => `
+          <div class="bar-group" data-week="Week ${index + 1}" data-amount="${money(value)}" style="cursor: pointer;">
+              <i class="bar" style="height:${Math.max(4, value / max * 100)}%"></i>
               <i class="bar secondary" style="height:${Math.max(3, (value * 0.48) / max * 100)}%"></i>
           </div>
       `).join('');
+
+      // Dynamic hover listener to show the amount instantly in the header
+      const hoverDisplay = el('chart-hover-display');
+      if (hoverDisplay) {
+          document.querySelectorAll('.bar-group').forEach(group => {
+              group.onmouseenter = () => {
+                  hoverDisplay.textContent = `${group.dataset.week}: ${group.dataset.amount}`;
+                  hoverDisplay.style.color = 'var(--ink)';
+              };
+              group.onmouseleave = () => {
+                  hoverDisplay.textContent = '';
+              };
+          });
+      }
   }
 
   const byCat = categories(); 
