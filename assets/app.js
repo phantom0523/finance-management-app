@@ -1663,13 +1663,7 @@ async function submitForm(e) {
         state.savings = totalAmt;
         state.income = 0;
 
-        state.fundActivities.unshift({
-            id: Date.now(),
-            type: 'UPDATE_FUNDS',
-            amount: totalAmt - currentTotal,
-            total: totalAmt,
-            date: isoDateTime()
-        });
+        // REMOVED the fundActivities.unshift block for UPDATE_FUNDS here
     }
 
     state.fundActivities =
@@ -1764,57 +1758,84 @@ if (form.dataset.type === 'net-worth-change') {
 }
 
 async function refreshPrices() {
-  if (!(state.holdings || []).length) return;
-  setText('quote-status', 'Fetching live prices…');
+    if (!(state.holdings || []).length) return;
+    setText('quote-status', 'Fetching live prices…');
+    
+    let updatedCount = 0;
+    const newHoldings = [...state.holdings];
+    const timestamp = Date.now();
   
-  const snapshot = [...state.holdings];
-  const quotes = await Promise.all(snapshot.map(async h => {
-      try {
-          const symbol = h.market === 'MYR' ? (h.ticker.endsWith('.KL') ? h.ticker : `${h.ticker}.KL`) : h.ticker;
-          const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1m&range=1d`;
-          
-          let quote = null;
-          let res = await fetch(targetUrl).catch(() => null);
-          
-          if (res && res.ok) {
-              const data = await res.json();
-              quote = data.chart?.result?.[0]?.meta?.regularMarketPrice;
-          } 
-          
-          if (!quote) {
-              res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}&disableCache=true`).catch(() => null);
-              if (res && res.ok) {
-                  const proxyData = await res.json();
-                  if (proxyData.contents) {
-                      const parsed = JSON.parse(proxyData.contents);
-                      quote = parsed.chart?.result?.[0]?.meta?.regularMarketPrice;
-                  }
-              }
-          }
-          
-          if (typeof quote === 'number' && quote > 0) { 
-              return { id: h.id, price: quote }; 
-          }
-      } catch(err) { 
-          console.warn(`Could not fetch live quote for ${h.ticker}:`, err); 
-      }
-      return null;
-  })); 
+    for (let i = 0; i < newHoldings.length; i++) {
+        const h = newHoldings[i];
+        try {
+            // Use 5-day daily range so it always captures the latest market close, even on weekends
+            const symbol = h.market === 'MYR' ? (h.ticker.endsWith('.KL') ? h.ticker : `${h.ticker}.KL`) : h.ticker;
+            const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d&_=${timestamp}`;
+            
+            let quote = null;
+            
+            // Helper to extract the most recent valid price from Yahoo's response
+            const extractPrice = (jsonData) => {
+                try {
+                    const result = jsonData.chart?.result?.[0];
+                    const meta = result?.meta;
+                    
+                    // 1. Try meta fields first
+                    let p = meta?.regularMarketPrice || meta?.chartPreviousClose || meta?.previousClose;
+                    if (typeof p === 'number' && p > 0) return p;
   
-  let updatedCount = 0;
-  state.holdings = (state.holdings || []).map(h => {
-      const liveQuote = quotes.find(q => q && q.id === h.id);
-      if (liveQuote) {
-          updatedCount++;
-          return { ...h, price: liveQuote.price };
-      }
-      return h;
-  });
+                    // 2. Fallback: Scan the historical close array for the last valid number
+                    const closes = result?.indicators?.quote?.[0]?.close;
+                    if (Array.isArray(closes)) {
+                        const validCloses = closes.filter(val => typeof val === 'number' && !isNaN(val));
+                        if (validCloses.length > 0) {
+                            return validCloses[validCloses.length - 1]; // Grabs the latest closing price
+                        }
+                    }
+                } catch (e) {}
+                return null;
+            };
   
-  save(); 
-  renderAll();
-  setText('quote-status', updatedCount > 0 ? `Live quotes updated at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Live quotes unavailable — showing Avg PPU');
-}
+            // Attempt 1: AllOrigins proxy
+            try {
+                const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}&disableCache=true`, { cache: 'no-store' });
+                if (res && res.ok) {
+                    const proxyData = await res.json();
+                    if (proxyData.contents) {
+                        const parsed = JSON.parse(proxyData.contents);
+                        quote = extractPrice(parsed);
+                    }
+                }
+            } catch(e) {}
+  
+            // Attempt 2: Backup Proxy (Corsproxy.io)
+            if (!quote) {
+                try {
+                    const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`, { cache: 'no-store' });
+                    if (res && res.ok) {
+                        const data = await res.json();
+                        quote = extractPrice(data);
+                    }
+                } catch(e) {}
+            }
+  
+            if (typeof quote === 'number' && quote > 0) { 
+                newHoldings[i] = { ...h, price: quote };
+                updatedCount++; 
+            }
+        } catch(err) { 
+            console.warn(`Could not fetch live quote for ${h.ticker}:`, err); 
+        }
+        
+        // Pause 400ms between each request
+        await new Promise(resolve => setTimeout(resolve, 400));
+    } 
+  
+    state.holdings = newHoldings;
+    save(); 
+    renderAll();
+    setText('quote-status', updatedCount > 0 ? `Live quotes updated at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Live quotes unavailable — showing Avg PPU');
+  }
 
 // -----------------------------------------
 // DOM EVENT LISTENERS
