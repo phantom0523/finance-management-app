@@ -785,14 +785,20 @@ function renderWorth() {
         `;
     }
 
-  function renderAll() {
-    renderProfile();
-    renderDashboard();
-    renderExpenses();
-    renderPortfolio();
-    renderWorth();
-    renderSavingsActivity();
-  }
+    function renderAll() {
+        renderProfile();
+        renderDashboard();
+        renderExpenses();
+        renderPortfolio();
+        renderWorth();
+        renderSavingsActivity();
+    
+        // Keep the global month picker synced with selectedMonth
+        const globalMonthInput = el('global-month');
+        if (globalMonthInput && globalMonthInput.value !== selectedMonth) {
+            globalMonthInput.value = selectedMonth;
+        }
+      }
 
 // -----------------------------------------
 // CSV EXPORT ENGINE
@@ -1856,6 +1862,14 @@ document.addEventListener("DOMContentLoaded", () => {
           const targetPage = el(a.dataset.page);
           if (targetPage) targetPage.classList.add('active');
           window.scrollTo({ top: 0, behavior: 'smooth' });
+          const globalMonthInput = el('global-month');
+            if (globalMonthInput) {
+            globalMonthInput.value = selectedMonth;
+            globalMonthInput.addEventListener('change', (e) => {
+            selectedMonth = e.target.value;
+            renderAll();
+      });
+  }
       });
   });
 

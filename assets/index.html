@@ -37,7 +37,9 @@
 
     <main>
       <header class="topbar"><button class="menu-button" aria-label="Open navigation">☰</button><div class="date-label" id="today"></div><button class="icon-button" id="theme-toggle" aria-label="Toggle theme">◐</button></header>
-
+      <div class="header-month-selector" style="display: flex; align-items: center; gap: 8px; margin-left: auto; margin-right: 12px;">
+        <label for="global-month" style="font-size: 12px; font-weight: 700; color: var(--muted);">MONTH:</label>
+        <input type="month" id="global-month" class="table-filter" style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-weight: 600; cursor: pointer;" /></div>
       <section class="page active" id="dashboard">
         <div class="intro"><div><p class="eyebrow">OVERVIEW</p><h1>Good morning, <span id="greet-name">Declan</span><span class="accent">.</span></h1><p class="subhead">Your money is working quietly in the background.</p></div></div>
         <div class="stat-grid">
