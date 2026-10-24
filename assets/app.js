@@ -1768,73 +1768,78 @@ async function refreshPrices() {
     for (let i = 0; i < newHoldings.length; i++) {
         const h = newHoldings[i];
         try {
-            // Use 5-day daily range so it always captures the latest market close, even on weekends
-            const symbol = h.market === 'MYR' ? (h.ticker.endsWith('.KL') ? h.ticker : `${h.ticker}.KL`) : h.ticker;
-            const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d&_=${timestamp}`;
+            const symbol = h.market === 'MYR' 
+                ? (h.ticker.endsWith('.KL') ? h.ticker : `${h.ticker}.KL`) 
+                : h.ticker;
+                
+            const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d&_=${timestamp}`;
             
             let quote = null;
-            
-            // Helper to extract the most recent valid price from Yahoo's response
-            const extractPrice = (jsonData) => {
+  
+            const parsePrice = (json) => {
                 try {
-                    const result = jsonData.chart?.result?.[0];
-                    const meta = result?.meta;
-                    
-                    // 1. Try meta fields first
+                    const meta = json?.chart?.result?.[0]?.meta;
                     let p = meta?.regularMarketPrice || meta?.chartPreviousClose || meta?.previousClose;
                     if (typeof p === 'number' && p > 0) return p;
   
-                    // 2. Fallback: Scan the historical close array for the last valid number
-                    const closes = result?.indicators?.quote?.[0]?.close;
+                    const closes = json?.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
                     if (Array.isArray(closes)) {
-                        const validCloses = closes.filter(val => typeof val === 'number' && !isNaN(val));
-                        if (validCloses.length > 0) {
-                            return validCloses[validCloses.length - 1]; // Grabs the latest closing price
-                        }
+                        const valid = closes.filter(v => typeof v === 'number' && !isNaN(v) && v > 0);
+                        if (valid.length > 0) return valid[valid.length - 1];
                     }
-                } catch (e) {}
+                } catch (_) {}
                 return null;
             };
   
-            // Attempt 1: AllOrigins proxy
+            // Primary Proxy: AllOrigins
             try {
-                const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}&disableCache=true`, { cache: 'no-store' });
-                if (res && res.ok) {
-                    const proxyData = await res.json();
-                    if (proxyData.contents) {
-                        const parsed = JSON.parse(proxyData.contents);
-                        quote = extractPrice(parsed);
-                    }
+                const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(yahooUrl)}&disableCache=true`, { cache: 'no-store' });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.contents) quote = parsePrice(JSON.parse(data.contents));
                 }
-            } catch(e) {}
+            } catch (_) {}
   
-            // Attempt 2: Backup Proxy (Corsproxy.io)
+            // Fallback 1: Corsproxy.io
             if (!quote) {
                 try {
-                    const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`, { cache: 'no-store' });
-                    if (res && res.ok) {
+                    const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(yahooUrl)}`, { cache: 'no-store' });
+                    if (res.ok) {
                         const data = await res.json();
-                        quote = extractPrice(data);
+                        quote = parsePrice(data);
                     }
-                } catch(e) {}
+                } catch (_) {}
+            }
+  
+            // Fallback 2: ThingProxy
+            if (!quote) {
+                try {
+                    const res = await fetch(`https://thingproxy.freeboard.io/fetch/${encodeURIComponent(yahooUrl)}`, { cache: 'no-store' });
+                    if (res.ok) {
+                        const data = await res.json();
+                        quote = parsePrice(data);
+                    }
+                } catch (_) {}
             }
   
             if (typeof quote === 'number' && quote > 0) { 
                 newHoldings[i] = { ...h, price: quote };
                 updatedCount++; 
             }
-        } catch(err) { 
+        } catch (err) { 
             console.warn(`Could not fetch live quote for ${h.ticker}:`, err); 
         }
         
-        // Pause 400ms between each request
-        await new Promise(resolve => setTimeout(resolve, 400));
+        // Delay 600ms between requests to prevent API blocking
+        await new Promise(resolve => setTimeout(resolve, 600));
     } 
   
     state.holdings = newHoldings;
-    save(); 
+    await save(); 
     renderAll();
-    setText('quote-status', updatedCount > 0 ? `Live quotes updated at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Live quotes unavailable — showing Avg PPU');
+    setText('quote-status', updatedCount > 0 
+        ? `Live quotes updated at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` 
+        : 'Live quotes unavailable — showing saved values');
   }
 
 // -----------------------------------------
