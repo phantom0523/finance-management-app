@@ -230,10 +230,10 @@ const defaultCategories = [
     'Dessert', 
     'Entertainment', 
     'Tolls', 
-    'Gift', 
-    'Others', 
+    'Gift',  
     'Utilities', 
-    'Rental'
+    'Rental',
+    'Others'
   ];
 
 // -----------------------------------------
