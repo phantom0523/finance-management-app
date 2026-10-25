@@ -224,6 +224,18 @@ const tickerDirectory = [
   {ticker:'3182', name:'Genting Berhad', market:'MYR'}
 ];
 
+const defaultCategories = [
+    'Food', 
+    'Car', 
+    'Dessert', 
+    'Entertainment', 
+    'Tolls', 
+    'Gift', 
+    'Others', 
+    'Utilities', 
+    'Rental'
+  ];
+
 // -----------------------------------------
 // FINANCIAL MATH ENGINE
 // -----------------------------------------
@@ -1175,25 +1187,32 @@ function renderModalHistory() {
 }
 
 function showModal(type, data = {}) {
-  const allCats = [...new Set((state.expenses || []).map(x => x.category))].sort();
-  const tickerListOptions = (state.holdings || []).map(h => `<option value="${escapeHtml(h.ticker)}">`).join('');
+    // Combine default categories with any custom ones already saved in state
+    const existingCats = (state.expenses || []).map(x => x.category);
+    const allCats = [...new Set([...defaultCategories, ...existingCats])].sort();
+    const tickerListOptions = (state.holdings || []).map(h => `<option value="${escapeHtml(h.ticker)}">`).join('');
+    
+    let title = '';
+    let copy = '';
+    let fields = '';
   
-  let title = '';
-  let copy = '';
-  let fields = '';
-
-  if (type === 'expense') {
-      title = 'Add an expense';
-      copy = 'Record the details and E-Wallet will update your monthly overview.';
-      fields = `
-          <div class="field full"><label>DESCRIPTION</label><input name="name" required placeholder="e.g. Lunch with friends" /></div>
-          <div class="field"><label>AMOUNT</label><input name="amount" type="number" min="0.01" step="0.01" required /></div>
-          <div class="field"><label>CURRENCY</label><select name="currency"><option>MYR</option><option>USD</option></select></div>
-          <div class="field"><label>CATEGORY 1</label><input name="category" list="expense-category-options" required placeholder="Food, Entertainment, Tolls…" /><datalist id="expense-category-options">${allCats.map(x=>`<option value="${escapeHtml(x)}">`).join('')}</datalist></div>
-          <div class="field"><label>CATEGORY 2</label><select name="category2"><option value="No">No</option><option value="Yes">Yes</option></select></div>
-          <div class="field"><label>DATE & TIME</label><input name="date" type="datetime-local" value="${isoDateTime()}" required /></div>
-          <div class="field full"><label>NOTE (OPTIONAL)</label><input name="description" placeholder="e.g. Work lunch" /></div>
-      `;
+    if (type === 'expense') {
+        title = 'Add an expense';
+        copy = 'Record the details and E-Wallet will update your monthly overview.';
+        fields = `
+            <div class="field full"><label>DESCRIPTION</label><input name="name" required placeholder="e.g. Lunch with friends" /></div>
+            <div class="field"><label>AMOUNT</label><input name="amount" type="number" min="0.01" step="0.01" required /></div>
+            <div class="field"><label>CURRENCY</label><select name="currency"><option>MYR</option><option>USD</option></select></div>
+            <div class="field"><label>CATEGORY 1</label>
+                <select name="category" required>
+                    <option value="" disabled selected>Select category...</option>
+                    ${allCats.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join('')}
+                </select>
+            </div>
+            <div class="field"><label>CATEGORY 2</label><select name="category2"><option value="No">No</option><option value="Yes">Yes</option></select></div>
+            <div class="field"><label>DATE & TIME</label><input name="date" type="datetime-local" value="${isoDateTime()}" required /></div>
+            <div class="field full"><label>NOTE (OPTIONAL)</label><input name="description" placeholder="e.g. Work lunch" /></div>
+        `;
   } else if (type === 'holding') {
       title = 'Add a holding';
       copy = 'Start typing a ticker to choose a stock.';
@@ -1276,36 +1295,41 @@ function closeModal() {
 }
 
 function showExpenseEditor(id) {
-  const x = (state.expenses || []).find(item => item.id === id); 
-  if (!x) return;
-  
-  const allCats = [...new Set((state.expenses || []).map(ex => ex.category))].sort();
-  const safeDate = x.date || isoDay(0);
-  const dtVal = safeDate.includes('T') ? safeDate : safeDate + 'T12:00';
-  
-  el('modal').classList.remove('wide-modal');
-  el('modal').innerHTML = `
-      <form id="entry-form" data-type="edit-expense" data-id="${x.id}">
-          <h2>Edit expense</h2>
-          <p>Update the transaction and save your changes.</p>
-          <div class="form-grid">
-              <div class="field full"><label>DESCRIPTION</label><input name="name" required value="${escapeHtml(x.name)}" /></div>
-              <div class="field"><label>AMOUNT</label><input name="amount" type="number" min="0.01" step="0.01" value="${x.amount}" required /></div>
-              <div class="field"><label>CURRENCY</label><select name="currency"><option ${x.currency==='MYR'?'selected':''}>MYR</option><option ${x.currency==='USD'?'selected':''}>USD</option></select></div>
-              <div class="field"><label>CATEGORY 1</label><input name="category" list="expense-category-options-edit" required value="${escapeHtml(x.category)}" /><datalist id="expense-category-options-edit">${allCats.map(c=>`<option value="${escapeHtml(c)}">`).join('')}</datalist></div>
-              <div class="field"><label>CATEGORY 2</label><select name="category2"><option value="No" ${x.category2==='No'?'selected':''}>No</option><option value="Yes" ${x.category2==='Yes'?'selected':''}>Yes</option></select></div>
-              <div class="field"><label>DATE & TIME</label><input name="date" type="datetime-local" value="${dtVal}" required /></div>
-              <div class="field full"><label>NOTE</label><input name="description" value="${escapeHtml(x.description||'')}" /></div>
-          </div>
-          <div class="modal-actions">
-              <button class="cancel" type="button" data-close>Cancel</button>
-              <button class="primary" type="submit">Save changes</button>
-          </div>
-      </form>
-  `;
-  el('modal-backdrop').hidden = false; 
-  el('entry-form').addEventListener('submit', submitForm);
-}
+    const x = (state.expenses || []).find(item => item.id === id); 
+    if (!x) return;
+    
+    const existingCats = (state.expenses || []).map(ex => ex.category);
+    const allCats = [...new Set([...defaultCategories, ...existingCats])].sort();
+    const safeDate = x.date || isoDay(0);
+    const dtVal = safeDate.includes('T') ? safeDate : safeDate + 'T12:00';
+    
+    el('modal').classList.remove('wide-modal');
+    el('modal').innerHTML = `
+        <form id="entry-form" data-type="edit-expense" data-id="${x.id}">
+            <h2>Edit expense</h2>
+            <p>Update the transaction and save your changes.</p>
+            <div class="form-grid">
+                <div class="field full"><label>DESCRIPTION</label><input name="name" required value="${escapeHtml(x.name)}" /></div>
+                <div class="field"><label>AMOUNT</label><input name="amount" type="number" min="0.01" step="0.01" value="${x.amount}" required /></div>
+                <div class="field"><label>CURRENCY</label><select name="currency"><option ${x.currency==='MYR'?'selected':''}>MYR</option><option ${x.currency==='USD'?'selected':''}>USD</option></select></div>
+                <div class="field"><label>CATEGORY 1</label>
+                    <select name="category" required>
+                        ${allCats.map(c => `<option value="${escapeHtml(c)}" ${x.category === c ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="field"><label>CATEGORY 2</label><select name="category2"><option value="No" ${x.category2==='No'?'selected':''}>No</option><option value="Yes" ${x.category2==='Yes'?'selected':''}>Yes</option></select></div>
+                <div class="field"><label>DATE & TIME</label><input name="date" type="datetime-local" value="${dtVal}" required /></div>
+                <div class="field full"><label>NOTE</label><input name="description" value="${escapeHtml(x.description||'')}" /></div>
+            </div>
+            <div class="modal-actions">
+                <button class="cancel" type="button" data-close>Cancel</button>
+                <button class="primary" type="submit">Save changes</button>
+            </div>
+        </form>
+    `;
+    el('modal-backdrop').hidden = false; 
+    el('entry-form').addEventListener('submit', submitForm);
+  }
 
 function showHoldingEditor(id) {
   const h = (state.holdings || []).find(item => item.id === id); 
