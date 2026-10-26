@@ -831,6 +831,16 @@ function renderWorth() {
 // -----------------------------------------
 
 function exportExpenses() {
+    // Prompt the user to enter a name/prefix for the file (defaulting to the current selectedMonth without the dash, e.g. "202609")
+    const defaultName = selectedMonth ? selectedMonth.replace('-', '') : 'Expenses';
+    const userInput = prompt("Enter a name for your export file (e.g. 202609):", defaultName);
+    
+    // If the user clicks cancel, abort the export
+    if (userInput === null) return; 
+
+    const cleanName = userInput.trim() !== '' ? userInput.trim() : defaultName;
+    const fileName = `${cleanName} Expenses.csv`;
+
     const visible = [...(state.expenses || [])].filter(x => 
         (expenseFilter1 === 'all' || x.category === expenseFilter1) &&
         (expenseFilter2 === 'all' || (x.category2 || 'No') === expenseFilter2)
@@ -852,35 +862,37 @@ function exportExpenses() {
         ]); 
     });
   
-    // Calculate the previous month name
-    const d = new Date();
-    d.setMonth(d.getMonth() - 1);
-    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    const prevMonthName = months[d.getMonth()];
-    
-    // Construct the dynamic filename
-    const fileName = "" + prevMonthName + " Expenses.csv";
-  
     triggerNativeExport(fileName, rows.map(e => e.join(",")).join("\n"));
-  }
+}
 
 function exportInvestments() {
-  const historyList = [...(state.investmentHistory || [])].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-  const rows = [['Date', 'Type', 'Ticker', 'Details', 'Fees', 'Amount', 'Currency']];
-  const escapeCsv = s => `"${String(s || '').replace(/"/g, '""')}"`;
-  
-  historyList.forEach(x => { 
-      rows.push([ 
-          escapeCsv(formatDate(x.date)), 
-          escapeCsv(x.type), 
-          escapeCsv(x.ticker), 
-          escapeCsv(x.details), 
-          Number(x.fees || 0).toFixed(2), 
-          Number(x.amount || 0).toFixed(2), 
-          escapeCsv(x.currency) 
-      ]); 
-  });
-  triggerNativeExport("E-Wallet_Fund_Details.csv", rows.map(e => e.join(",")).join("\n"));
+    // Prompt the user for a custom filename, defaulting to the selected month's fund details
+    const defaultName = selectedMonth ? `${selectedMonth.replace('-', '')} Fund Details` : 'Fund Details';
+    const userInput = prompt("Enter a name for your export file:", defaultName);
+    
+    // If the user clicks cancel, abort the export
+    if (userInput === null) return; 
+
+    const cleanName = userInput.trim() !== '' ? userInput.trim() : defaultName;
+    const fileName = cleanName.toLowerCase().endsWith('.csv') ? cleanName : `${cleanName}.csv`;
+
+    const historyList = [...(state.investmentHistory || [])].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const rows = [['Date', 'Type', 'Ticker', 'Details', 'Fees', 'Amount', 'Currency']];
+    const escapeCsv = s => `"${String(s || '').replace(/"/g, '""')}"`;
+    
+    historyList.forEach(x => { 
+        rows.push([ 
+            escapeCsv(formatDate(x.date)), 
+            escapeCsv(x.type), 
+            escapeCsv(x.ticker), 
+            escapeCsv(x.details), 
+            Number(x.fees || 0).toFixed(2), 
+            Number(x.amount || 0).toFixed(2), 
+            escapeCsv(x.currency) 
+        ]); 
+    });
+    
+    triggerNativeExport(fileName, rows.map(e => e.join(",")).join("\n"));
 }
 
 function triggerNativeExport(filename, csvData) {
