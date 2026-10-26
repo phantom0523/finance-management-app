@@ -109,6 +109,21 @@ function iconFor(c) {
   })[c] || '·';
 }
 
+function getFilteredExpenses() {
+    return [...(state.expenses || [])].filter(x => {
+        const matchCat1 = (expenseFilter1 === 'all' || x.category === expenseFilter1);
+        const matchCat2 = (expenseFilter2 === 'all' || (x.category2 || 'No') === expenseFilter2);
+        
+        // Date range filtering
+        const itemDate = (x.date || '').slice(0, 10);
+        let matchDate = true;
+        if (expenseDateFrom && itemDate < expenseDateFrom) matchDate = false;
+        if (expenseDateTo && itemDate > expenseDateTo) matchDate = false;
+
+        return matchCat1 && matchCat2 && matchDate;
+    });
+}
+
 // -----------------------------------------
 // AUTH & FIREBASE SYNC
 // -----------------------------------------
@@ -179,6 +194,8 @@ function save() {
 
 let expenseFilter1 = 'all';
 let expenseFilter2 = 'all';
+let expenseDateFrom = '';
+let expenseDateTo = '';
 let expenseSort = { key: 'date', direction: -1 };
 let selectedMonth = new Date().toISOString().slice(0, 7);
 let holdingSort = { key: 'unrealised', direction: -1 };
@@ -831,20 +848,16 @@ function renderWorth() {
 // -----------------------------------------
 
 function exportExpenses() {
-    // Prompt the user to enter a name/prefix for the file (defaulting to the current selectedMonth without the dash, e.g. "202609")
     const defaultName = selectedMonth ? selectedMonth.replace('-', '') : 'Expenses';
     const userInput = prompt("Enter a name for your export file (e.g. 202609):", defaultName);
     
-    // If the user clicks cancel, abort the export
     if (userInput === null) return; 
 
     const cleanName = userInput.trim() !== '' ? userInput.trim() : defaultName;
     const fileName = `${cleanName} Expenses.csv`;
 
-    const visible = [...(state.expenses || [])].filter(x => 
-        (expenseFilter1 === 'all' || x.category === expenseFilter1) &&
-        (expenseFilter2 === 'all' || (x.category2 || 'No') === expenseFilter2)
-    ).sort((a, b) => {
+    // Uses the exact same date and category filters currently applied in the view
+    const visible = getFilteredExpenses().sort((a, b) => {
         const val = x => expenseSort.key === 'amount' ? toMYR(x.amount, x.currency) : expenseSort.key === 'name' ? (x.name || '').toLowerCase() : (x[expenseSort.key] || '');
         return val(a) > val(b) ? expenseSort.direction : val(a) < val(b) ? -expenseSort.direction : 0;
     });
@@ -1064,75 +1077,130 @@ function showProfileModal() {
 }
 
 function showAllExpensesModal() {
-  el('modal').classList.add('wide-modal');
-  el('modal').innerHTML = `
-      <div class="activity-modal">
-          <div class="modal-head" style="align-items:center;">
-              <div>
-                  <h2>All Expenses</h2>
-                  <p style="margin:0;">Filter, sort, and manage all your records.</p>
-              </div>
-              <div style="display:flex; gap:10px;">
-                  <select id="expense-category1" class="table-filter"><option value="all">Category 1 (All)</option></select>
-                  <select id="expense-category2" class="table-filter"><option value="all">Category 2 (All)</option><option value="Yes">Yes</option><option value="No">No</option></select>
-                  <button class="table-filter" id="export-expenses" style="cursor:pointer; border:1px solid var(--line); padding:8px 14px;">↓ Export</button>
-                  <button class="cancel" type="button" data-close>Close</button>
-              </div>
-          </div>
-          <div class="expense-table" style="margin-top:20px;">
-              <div class="table-head">
-                  <button data-expense-sort="name">Description ↕</button>
-                  <button data-expense-sort="category">Category 1 ↕</button>
-                  <button data-expense-sort="category2">Category 2 ↕</button>
-                  <button data-expense-sort="date">Date ↕</button>
-                  <button data-expense-sort="amount">Amount ↕</button>
-                  <span></span>
-              </div>
-              <div id="modal-expense-rows" class="activity-scroll" style="max-height: 55vh;"></div>
-          </div>
-      </div>
-  `;
+    el('modal').classList.add('wide-modal');
+    el('modal').innerHTML = `
+        <div class="activity-modal">
+            <div class="modal-head" style="align-items: flex-start; flex-direction: column; gap: 16px;">
+                <div>
+                    <h2>All Expenses</h2>
+                    <p style="margin: 0;">Filter, sort, and manage all your records.</p>
+                </div>
+                
+                <!-- Filter Controls Header Row -->
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 12px; flex-wrap: wrap;">
+                    <!-- Left Controls: Date Range & Category Dropdowns -->
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <input 
+                            type="date" 
+                            id="expense-date-from" 
+                            class="table-filter" 
+                            title="From Date" 
+                            style="height: 36px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-family: inherit; font-size: 12px; box-sizing: border-box;" 
+                        />
+                        <span style="color: var(--muted); font-size: 12px; font-weight: 600;">to</span>
+                        <input 
+                            type="date" 
+                            id="expense-date-to" 
+                            class="table-filter" 
+                            title="To Date" 
+                            style="height: 36px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-family: inherit; font-size: 12px; box-sizing: border-box;" 
+                        />
+                        <select 
+                            id="expense-category1" 
+                            class="table-filter" 
+                            style="height: 36px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-family: inherit; font-size: 12px; cursor: pointer; box-sizing: border-box;"
+                        >
+                            <option value="all">Category 1 (All)</option>
+                        </select>
+                        <select 
+                            id="expense-category2" 
+                            class="table-filter" 
+                            style="height: 36px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-family: inherit; font-size: 12px; cursor: pointer; box-sizing: border-box;"
+                        >
+                            <option value="all">Category 2 (All)</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                        </select>
+                    </div>
   
-  el('modal-backdrop').hidden = false;
-  renderModalExpenses();
-}
+                    <!-- Right Controls: Action Buttons -->
+                    <div style="display: flex; gap: 8px; align-items: center; margin-left: auto;">
+                        <button 
+                            class="table-filter" 
+                            id="export-expenses" 
+                            style="height: 36px; cursor: pointer; border: 1px solid var(--line); padding: 0 14px; border-radius: 8px; background: var(--surface); color: var(--ink); font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; box-sizing: border-box;"
+                        >
+                            ↓ Export
+                        </button>
+                        <button 
+                            class="cancel" 
+                            type="button" 
+                            data-close 
+                            style="height: 36px; padding: 0 14px; border-radius: 8px; font-size: 12px; display: inline-flex; align-items: center; box-sizing: border-box;"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+  
+            <div class="expense-table" style="margin-top: 20px;">
+                <div class="table-head">
+                    <button data-expense-sort="name">Description ↕</button>
+                    <button data-expense-sort="category">Category 1 ↕</button>
+                    <button data-expense-sort="category2">Category 2 ↕</button>
+                    <button data-expense-sort="date">Date ↕</button>
+                    <button data-expense-sort="amount">Amount ↕</button>
+                    <span></span>
+                </div>
+                <div id="modal-expense-rows" class="activity-scroll" style="max-height: 55vh;"></div>
+            </div>
+        </div>
+    `;
+    
+    el('modal-backdrop').hidden = false;
+    renderModalExpenses();
+  }
 
-function renderModalExpenses() {
-  const visible = [...(state.expenses || [])].filter(x => 
-      (expenseFilter1 === 'all' || x.category === expenseFilter1) &&
-      (expenseFilter2 === 'all' || (x.category2 || 'No') === expenseFilter2)
-  ).sort((a, b) => {
-      const val = x => expenseSort.key === 'amount' ? toMYR(x.amount, x.currency) : expenseSort.key === 'name' ? (x.name || '').toLowerCase() : (x[expenseSort.key] || '');
-      return val(a) > val(b) ? expenseSort.direction : val(a) < val(b) ? -expenseSort.direction : 0;
-  });
-  
-  if (el('modal-expense-rows')) {
-      el('modal-expense-rows').innerHTML = visible.map(x => `
-          <div class="expense-row">
-              <div class="expense-name">
-                  <b>${escapeHtml(x.name)}</b>
-                  <small>${escapeHtml(x.description || x.currency)}</small>
-              </div>
-              <span class="category-tag">${escapeHtml(x.category)}</span>
-              <span class="category-tag" style="${x.category2 === 'Yes' ? 'background:#e8eae5;color:#555' : 'background:transparent;color:var(--muted);border:1px solid var(--line)'}">${x.category2 === 'Yes' ? 'Yes' : 'No'}</span>
-              <span>${formatDate(x.date, true)}</span>
-              <strong>−${money(x.amount, x.currency)}</strong>
-              <div class="table-actions">
-                  <button data-edit-expense="${x.id}">Edit</button>
-                  <button class="delete-btn" data-delete-expense="${x.id}">×</button>
-              </div>
-          </div>
-      `).join('') || '<div class="empty-state">No matching records.</div>';
+  function renderModalExpenses() {
+    const visible = getFilteredExpenses().sort((a, b) => {
+        const val = x => expenseSort.key === 'amount' ? toMYR(x.amount, x.currency) : expenseSort.key === 'name' ? (x.name || '').toLowerCase() : (x[expenseSort.key] || '');
+        return val(a) > val(b) ? expenseSort.direction : val(a) < val(b) ? -expenseSort.direction : 0;
+    });
+    
+    if (el('modal-expense-rows')) {
+        el('modal-expense-rows').innerHTML = visible.map(x => `
+            <div class="expense-row">
+                <div class="expense-name">
+                    <b>${escapeHtml(x.name)}</b>
+                    <small>${escapeHtml(x.description || x.currency)}</small>
+                </div>
+                <span class="category-tag">${escapeHtml(x.category)}</span>
+                <span class="category-tag" style="${x.category2 === 'Yes' ? 'background:#e8eae5;color:#555' : 'background:transparent;color:var(--muted);border:1px solid var(--line)'}">${x.category2 === 'Yes' ? 'Yes' : 'No'}</span>
+                <span>${formatDate(x.date, true)}</span>
+                <strong>−${money(x.amount, x.currency)}</strong>
+                <div class="table-actions">
+                    <button data-edit-expense="${x.id}">Edit</button>
+                    <button class="delete-btn" data-delete-expense="${x.id}">×</button>
+                </div>
+            </div>
+        `).join('') || '<div class="empty-state">No matching records.</div>';
+    }
+    
+    const categoryOptions = [...new Set((state.expenses || []).map(x => x.category))].sort(); 
+    if (el('expense-category1')) { 
+        el('expense-category1').innerHTML = `<option value="all">Category 1 (All)</option>${categoryOptions.map(c => `<option value="${escapeHtml(c)}" ${c === expenseFilter1 ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}`; 
+    }
+    if (el('expense-category2') && el('expense-category2').value !== expenseFilter2) { 
+        el('expense-category2').value = expenseFilter2; 
+    }
+    if (el('expense-date-from') && el('expense-date-from').value !== expenseDateFrom) {
+        el('expense-date-from').value = expenseDateFrom;
+    }
+    if (el('expense-date-to') && el('expense-date-to').value !== expenseDateTo) {
+        el('expense-date-to').value = expenseDateTo;
+    }
   }
-  
-  const categoryOptions = [...new Set((state.expenses || []).map(x => x.category))].sort(); 
-  if (el('expense-category1')) { 
-      el('expense-category1').innerHTML = `<option value="all">Category 1 (All)</option>${categoryOptions.map(c => `<option value="${escapeHtml(c)}" ${c === expenseFilter1 ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}`; 
-  }
-  if (el('expense-category2') && el('expense-category2').value !== expenseFilter2) { 
-      el('expense-category2').value = expenseFilter2; 
-  }
-}
 
 function showAllHistoryModal() {
   el('modal').classList.add('wide-modal');
@@ -1936,10 +2004,12 @@ document.addEventListener("DOMContentLoaded", () => {
   if (el('view-all-history')) el('view-all-history').addEventListener('click', showAllHistoryModal);
 
   document.addEventListener('change', e => {
-      if (e.target.id === 'expense-month') { selectedMonth = e.target.value; renderAll(); } 
-      if (e.target.id === 'expense-category1') { expenseFilter1 = e.target.value; if (el('modal-expense-rows')) renderModalExpenses(); }
-      if (e.target.id === 'expense-category2') { expenseFilter2 = e.target.value; if (el('modal-expense-rows')) renderModalExpenses(); }
-  });
+    if (e.target.id === 'expense-month') { selectedMonth = e.target.value; renderAll(); } 
+    if (e.target.id === 'expense-category1') { expenseFilter1 = e.target.value; if (el('modal-expense-rows')) renderModalExpenses(); }
+    if (e.target.id === 'expense-category2') { expenseFilter2 = e.target.value; if (el('modal-expense-rows')) renderModalExpenses(); }
+    if (e.target.id === 'expense-date-from') { expenseDateFrom = e.target.value; if (el('modal-expense-rows')) renderModalExpenses(); }
+    if (e.target.id === 'expense-date-to') { expenseDateTo = e.target.value; if (el('modal-expense-rows')) renderModalExpenses(); }
+});
 
   document.querySelectorAll('[data-sort]').forEach(button => {
       button.addEventListener('click', () => {
